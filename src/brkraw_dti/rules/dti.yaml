@@ -21,15 +21,3 @@ info_spec:
     if:
       regex: ["$diff_dir", "^[1-9][0-9]*$"]
     use: "dti_info"
-
-metadata_spec:
-  - name: "dti-metadata"
-    description: "DTI JSON sidecar metadata."
-    when:
-      diff_dir:
-        sources:
-          - file: method
-            key: PVM_DwNDiffDir
-    if:
-      regex: ["$diff_dir", "^[1-9][0-9]*$"]
-    use: "dti_metadata"

@@ -3,34 +3,30 @@ __meta__:
   version: "0.1.0"
   description: "DTI info spec for BrkRaw CLI"
   category: "info_spec"
+  transforms_source: "../transforms/dti.py"
 
 Method:
   sources:
     - file: method
       key: Method
+  transform: strip_bruker_string
 
 Protocol:
   sources:
     - file: acqp
       key: ACQ_protocol_name
+  transform: strip_bruker_string
 
-# Diffusion Params
-BValues:
+Dim:
   sources:
-    - file: method
-      key: PVM_DwEffBval
-    - file: method
-      key: PVM_DwBVal
+    - file: acqp
+      key: ACQ_dim
 
-NumDirections:
+DimDesc:
   sources:
-    - file: method
-      key: PVM_DwNDiffDir
-
-DiffusionMode:
-  sources:
-    - file: method
-      key: PVM_DwPrepMode
+    - file: acqp
+      key: ACQ_dim_desc
+  transform: convert_to_list
 
 TE (ms):
   sources:
@@ -42,6 +38,11 @@ TR (ms):
     - file: method
       key: PVM_RepetitionTime
 
+FlipAngle (degree):
+  sources:
+    - file: acqp
+      key: ACQ_flip_angle
+
 Shape:
   sources:
     - file: method
@@ -51,3 +52,75 @@ FOV (mm):
   sources:
     - file: method
       key: PVM_Fov
+
+SliceOrient:
+  sources:
+    - file: method
+      key: PVM_SPackArrSliceOrient
+  transform: convert_to_list
+
+ReadOrient:
+  sources:
+    - file: method
+      key: PVM_SPackArrReadOrient
+  transform: convert_to_list
+
+Num Slices:
+  sources:
+    - file: acqp
+      key: NSLICES
+
+SliceDistance (mm):
+  sources:
+    - file: method
+      key: PVM_SPackArrSliceDistance
+  transform: convert_to_list
+
+SliceGap (mm):
+  sources:
+    - file: method
+      key: PVM_SPackArrSliceGap
+
+Preparation:
+  sources:
+    - file: method
+      key: PVM_DiffPrepMode
+  transform: strip_bruker_string
+
+Experiment:
+  sources:
+    - file: method
+      key: PVM_DwMeasMode
+  transform: strip_bruker_string
+
+Multi Shell Exp:
+  sources:
+    - file: method
+      key: PVM_DwMultiShellExp
+
+Num B0:
+  sources:
+    - file: method
+      key: PVM_DwAoImages
+
+Num Directions:
+  sources:
+    - file: method
+      key: PVM_DwShellNDir
+    - file: method
+      key: PVM_DwNDiffDir
+
+G Duration (ms):
+  sources:
+    - file: method
+      key: PVM_DwGradDur
+
+G Separation (ms):
+  sources:
+    - file: method
+      key: PVM_DwGradSep
+
+Max B (s/mm^2):
+  sources:
+    - file: method
+      key: PVM_DwMaxBval

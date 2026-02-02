@@ -22,12 +22,18 @@ def _strip_nii_suffix(path: Union[str, Path]) -> str:
     return p.stem
 
 
-def _write_bvec_bval(filename: Union[str, Path], bvals: Optional[np.ndarray], bvecs: Optional[np.ndarray]) -> None:
+def _write_bvec_bval(
+    filename: Union[str, Path],
+    bvals: Optional[np.ndarray],
+    bvecs: Optional[np.ndarray],
+) -> tuple[Optional[Path], Optional[Path]]:
     if bvals is None and bvecs is None:
-        return
+        return None, None
     p = Path(str(filename))
     stem = _strip_nii_suffix(p)
     parent = p.parent
+    bval_path: Optional[Path] = None
+    bvec_path: Optional[Path] = None
     if bvals is not None:
         bval_path = parent / f"{stem}.bval"
         logger.debug("Saving bvals to %s", bval_path)
@@ -36,6 +42,7 @@ def _write_bvec_bval(filename: Union[str, Path], bvals: Optional[np.ndarray], bv
         bvec_path = parent / f"{stem}.bvec"
         logger.debug("Saving bvecs to %s", bvec_path)
         np.savetxt(bvec_path, np.asarray(bvecs).T, fmt="%.6f")
+    return bval_path, bvec_path
 
 
 def _attach_bvec_bval_writer(
@@ -49,7 +56,11 @@ def _attach_bvec_bval_writer(
 
     def _to_filename(self: Nifti1Image, filename: Any, *args: Any, **kwargs: Any) -> Any:
         result = orig_to_filename(str(filename), *args, **kwargs)
-        _write_bvec_bval(filename, bvals, bvecs)
+        bval_path, bvec_path = _write_bvec_bval(filename, bvals, bvecs)
+        if bvec_path is not None:
+            logger.info("Wrote BVEC: %s", bvec_path)
+        if bval_path is not None:
+            logger.info("Wrote BVAL: %s", bval_path)
         return result
 
     nii.to_filename = MethodType(_to_filename, nii)
