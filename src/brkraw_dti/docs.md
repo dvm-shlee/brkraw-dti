@@ -5,7 +5,7 @@ This hook provides support for Diffusion Tensor Imaging (DTI) scans.
 ## Features
 
 - Automatic export of `.bvec` and `.bval` files.
-- info_spec 
+- Updated info spec fields in `brkraw info` output.
 - Live DTI calculation in BrkRaw Viewer.
 
 ## Parameters
