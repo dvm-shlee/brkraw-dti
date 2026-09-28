@@ -52,6 +52,21 @@ def test_applies_brkraws_per_frame_scaling(monkeypatch):
     assert np.allclose(np.asarray(out.dataobj), 3.0)
 
 
+def test_passes_the_legacy_cycle_selection_to_scaling(monkeypatch):
+    # brkraw forwards cycle_index/cycle_count to the hook; scale_frames needs them
+    # to cut its per-frame values like the data (wi-0038-choi-3)
+    _no_gradients(monkeypatch)
+    seen = {}
+
+    def fake_scale(scan, reco_id, data, **kw):
+        seen.update(reco_id=reco_id, **kw)
+        return data, True
+
+    monkeypatch.setattr(hook, "_scale_frames", fake_scale)
+    hook.convert(FakeScan(), np.ones((2, 2, 1)), np.eye(4), reco_id=2, cycle_index=1, cycle_count=2)
+    assert seen == {"reco_id": 2, "cycle_index": 1, "cycle_count": 2}
+
+
 def test_a_failed_nifti_build_is_reported(monkeypatch, caplog):
     _no_gradients(monkeypatch)
     monkeypatch.setattr(hook, "_scale_frames", lambda scan, reco_id, data, **kw: (data, False))
