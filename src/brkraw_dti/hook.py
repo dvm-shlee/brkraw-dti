@@ -177,10 +177,14 @@ def convert(
         }
         data = tuple(dataobjs)
         if _scale_frames is not None:
-            # different per-frame slopes/offsets (tensor maps): the same rule as brkraw's convert
-            data, applied = _scale_frames(
-                scan, reco_id, data, axis=kwargs.get("axis"), frames=kwargs.get("frames")
-            )
+            # different per-frame slopes/offsets (tensor maps): the same rule as brkraw's convert,
+            # with the same frame selection brkraw passed (axis/frames or the legacy cycle options)
+            selection = {
+                key: kwargs[key]
+                for key in ("axis", "frames", "cycle_index", "cycle_count")
+                if kwargs.get(key) is not None
+            }
+            data, applied = _scale_frames(scan, reco_id, data, **selection)
             nifti_kwargs["scaling_applied"] = applied
         try:
             niiobjs = scan.get_nifti1image(
