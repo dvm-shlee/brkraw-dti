@@ -10,6 +10,11 @@ from brkraw.apps.loader.types import ToFilename
 
 from .logic import get_gradients, reorient_gradients
 
+try:  # brkraw >= 0.6.0rc2: the per-frame slope/offset rule for converter hooks
+    from brkraw.api import scale_frames as _scale_frames
+except (ImportError, AttributeError):  # older brkraw
+    _scale_frames = None
+
 logger = logging.getLogger("brkraw.dti")
 
 
@@ -156,21 +161,42 @@ def convert(
     t_units = kwargs.get("t_units", "sec")
     override_header = kwargs.get("override_header", None)
 
-    reco_id = _resolve_reco_id_from_affines(scan, affines)
+    # brkraw >= 0.6.0rc2 passes the reco id; older versions do not, and the reco is
+    # guessed from the affines (ambiguous when recos share one, e.g. DWI and tensor maps)
+    reco_id = kwargs.get("reco_id")
+    if reco_id is None:
+        reco_id = _resolve_reco_id_from_affines(scan, affines)
     results: list[Nifti1Image] = []
 
     niiobjs: Optional[Union[Nifti1Image, Tuple[Nifti1Image, ...]]] = None
     if reco_id is not None and hasattr(scan, "get_nifti1image"):
+        nifti_kwargs: dict = {
+            "override_header": override_header,
+            "xyz_units": xyz_units,
+            "t_units": t_units,
+        }
+        data = tuple(dataobjs)
+        if _scale_frames is not None:
+            # different per-frame slopes/offsets (tensor maps): the same rule as brkraw's convert
+            data, applied = _scale_frames(
+                scan, reco_id, data, axis=kwargs.get("axis"), frames=kwargs.get("frames")
+            )
+            nifti_kwargs["scaling_applied"] = applied
         try:
             niiobjs = scan.get_nifti1image(
                 reco_id=reco_id,
-                dataobjs=tuple(dataobjs),
+                dataobjs=data,
                 affines=tuple(affines),
-                override_header=override_header,
-                xyz_units=xyz_units,
-                t_units=t_units,
+                **nifti_kwargs,
             )
-        except Exception:
+            dataobjs = list(data)
+        except Exception as exc:
+            logger.warning(
+                "DTI hook: NIfTI header could not be built for reco %s (%s); "
+                "writing the data without brkraw's header and scaling.",
+                reco_id,
+                exc,
+            )
             niiobjs = None
 
     if niiobjs is None:
